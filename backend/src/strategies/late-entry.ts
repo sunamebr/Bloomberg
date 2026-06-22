@@ -1,5 +1,6 @@
 import type { Strategy, StrategyContext } from "./types";
 import { RSI, ATR, RollingVolatility, peakGapRatio } from "./indicators";
+import { resolveBinaryTokenId } from "./token-resolver";
 
 const MAX_SIZE = 25;
 const ENTRY_WINDOW = 90;
@@ -47,11 +48,12 @@ export const lateEntry: Strategy = async (ctx: StrategyContext) => {
     if (upSide > DOMINANCE_FLOOR && upSide > downSide && (rsiVal == null || rsiVal >= 50)) {
       const size = Math.min(MAX_SIZE, balance / bestAsk);
       if (size < 1) return;
+      const tokenId = resolveBinaryTokenId(slot, "UP");
+      if (!tokenId) return;
       entered = true;
-      // TODO: replace slot.asset with slot.upTokenId once engine populates it
       postOrders([
         {
-          tokenId: slot.upTokenId ?? slot.asset,
+          tokenId,
           price: bestAsk,
           size,
           side: "BUY",
@@ -61,12 +63,12 @@ export const lateEntry: Strategy = async (ctx: StrategyContext) => {
     } else if (downSide > DOMINANCE_FLOOR && downSide > upSide && (rsiVal == null || rsiVal <= 50)) {
       const size = Math.min(MAX_SIZE, balance / (1 - bestBid));
       if (size < 1) return;
+      const tokenId = resolveBinaryTokenId(slot, "DOWN");
+      if (!tokenId) return;
       entered = true;
-      // BUGFIX: original used `slot.asset + "-DOWN"` (invalid Polymarket tokenId).
-      // TODO: replace with slot.downTokenId once engine populates it
       postOrders([
         {
-          tokenId: slot.downTokenId ?? `${slot.asset}-DOWN`,
+          tokenId,
           price: 1 - bestBid,
           size,
           side: "BUY",

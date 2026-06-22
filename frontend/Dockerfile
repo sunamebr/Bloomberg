@@ -1,9 +1,12 @@
-# Frontend placeholder — substituído em T2/T3
 FROM node:20-alpine
 
 WORKDIR /app
 
-# T2: copiar package.json, instalar deps, copiar src, expor Vite
-# Por ora só mantém o container vivo para dev
+COPY package*.json ./
+RUN npm ci
 
-CMD ["tail", "-f", "/dev/null"]
+COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

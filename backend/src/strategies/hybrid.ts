@@ -1,5 +1,6 @@
 import type { Strategy, StrategyContext } from "./types";
 import { RSI, bollingerBands, zScore } from "./indicators";
+import { resolveBinaryTokenId } from "./token-resolver";
 
 const MAX_SIZE = 25;
 const CONFIDENCE_CAP = 0.45;
@@ -80,12 +81,13 @@ export const hybrid: Strategy = async (ctx: StrategyContext) => {
     const size = Math.min(MAX_SIZE, maxByBalance * confidence);
     if (size < 1) return;
 
-    lastTrade = now;
     if (combined > 0) {
-      // TODO: replace slot.asset with slot.upTokenId once engine populates it
+      const tokenId = resolveBinaryTokenId(slot, "UP");
+      if (!tokenId) return;
+      lastTrade = now;
       postOrders([
         {
-          tokenId: slot.upTokenId ?? slot.asset,
+          tokenId,
           price: bestAsk,
           size,
           side: "BUY",
@@ -93,11 +95,12 @@ export const hybrid: Strategy = async (ctx: StrategyContext) => {
         },
       ]);
     } else {
-      // BUGFIX: original used `slot.asset + "-DOWN"` (invalid Polymarket tokenId).
-      // TODO: replace with slot.downTokenId once engine populates it
+      const tokenId = resolveBinaryTokenId(slot, "DOWN");
+      if (!tokenId) return;
+      lastTrade = now;
       postOrders([
         {
-          tokenId: slot.downTokenId ?? `${slot.asset}-DOWN`,
+          tokenId,
           price: 1 - bestBid,
           size,
           side: "BUY",

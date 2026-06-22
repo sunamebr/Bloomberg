@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import jwt from "jsonwebtoken";
 import { signToken, authenticateToken, type AuthTokenPayload } from "../src/auth";
+import { config } from "../src/config";
 
 describe("auth.signToken", () => {
   it("round-trips a JWT", () => {
     const payload: AuthTokenPayload = { sub: 7, username: "mestra", role: "admin" };
     const token = signToken(payload);
-    const decoded = jwt.verify(token, "dev-secret-change-me") as AuthTokenPayload;
+    const decoded = jwt.verify(token, config.jwtSecret) as AuthTokenPayload;
     expect(decoded.sub).toBe(7);
     expect(decoded.username).toBe("mestra");
   });

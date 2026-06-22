@@ -1,5 +1,5 @@
 export { getPool, pingDb, closePool } from "./pool";
-export type { UserRow, PositionRow, SignalRow, LedgerRow } from "./queries";
+export type { UserRow, PositionRow, SignalRow, LedgerRow, OperationHistoryRow } from "./queries";
 export {
   getUserByUsername,
   getUserById,
@@ -8,4 +8,5 @@ export {
   getOpenPositions,
   getRecentSignals,
   getLedger,
+  getOperationHistory,
 } from "./queries";

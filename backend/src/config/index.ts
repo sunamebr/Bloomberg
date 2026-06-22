@@ -1,4 +1,9 @@
 import { config as loadDotenv } from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+loadDotenv({ path: path.resolve(here, "../../../.env") });
 loadDotenv();
 
 export interface AppConfig {
@@ -17,7 +22,14 @@ export interface AppConfig {
     password: string;
     database: string;
   };
+  wallet: {
+    watchAddress?: string;
+    pUsdAddress: string;
+    usdcAddress: string;
+    usdcEAddress: string;
+  };
   polymarket: {
+    clobHost: string;
     privateKey?: string;
     apiKey?: string;
     apiSecret?: string;
@@ -49,7 +61,14 @@ export const config: AppConfig = {
     password: process.env.MYSQL_PASSWORD ?? "",
     database: process.env.MYSQL_DATABASE ?? "mestrados",
   },
+  wallet: {
+    watchAddress: process.env.WALLET_ADDRESS,
+    pUsdAddress: process.env.POLYMARKET_PUSD_ADDRESS ?? "0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB",
+    usdcAddress: process.env.POLYGON_USDC_ADDRESS ?? "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+    usdcEAddress: process.env.POLYGON_USDCE_ADDRESS ?? "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+  },
   polymarket: {
+    clobHost: process.env.POLYMARKET_CLOB_HOST ?? "https://clob.polymarket.com",
     privateKey: process.env.POLYMARKET_PRIVATE_KEY,
     apiKey: process.env.POLYMARKET_API_KEY,
     apiSecret: process.env.POLYMARKET_API_SECRET,

@@ -12,7 +12,7 @@ export interface UserRow {
 
 export interface PositionRow {
   id: number;
-  user_id: number;
+  user_id: number | null;
   market_id: string;
   token_id: string;
   asset: string;
@@ -42,6 +42,23 @@ export interface SignalRow {
 export interface LedgerRow {
   id: number;
   user_id: number | null;
+  strategy: string;
+  asset: string;
+  window_type: string;
+  market_id: string;
+  token_id: string;
+  side: string;
+  shares: number;
+  price: number;
+  fee_usd: number;
+  pnl_usd: number | null;
+  mode: string;
+  created_at: Date;
+}
+
+export interface OperationHistoryRow {
+  id: number;
+  kind: "ledger";
   strategy: string;
   asset: string;
   window_type: string;
@@ -118,4 +135,29 @@ export async function getLedger(limit = 200): Promise<LedgerRow[]> {
     [limit],
   );
   return rows as LedgerRow[];
+}
+
+export async function getOperationHistory(limit = 100): Promise<OperationHistoryRow[]> {
+  const [rows] = await pool().query(
+    `SELECT
+       id,
+       'ledger' AS kind,
+       strategy,
+       asset,
+       window_type,
+       market_id,
+       token_id,
+       side,
+       shares,
+       price,
+       fee_usd,
+       pnl_usd,
+       mode,
+       created_at
+     FROM ledger
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [limit],
+  );
+  return rows as OperationHistoryRow[];
 }

@@ -39,7 +39,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-    command: tail -f /dev/null
+    command: npm run dev
     networks:
       - mestrados-net
 
@@ -49,12 +49,14 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:3001
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    command: tail -f /dev/null
+    command: npm run dev -- --host 0.0.0.0
     networks:
       - mestrados-net
 

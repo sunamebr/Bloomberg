@@ -1,4 +1,5 @@
 import type { Strategy, StrategyContext } from "./types";
+import { resolveBinaryTokenId } from "./token-resolver";
 
 const MAX_SIZE = 25;
 const MID_FLOOR = 0.6;
@@ -42,33 +43,32 @@ export const feeZoneMaker: Strategy = async (ctx: StrategyContext) => {
     if (buyPrice > 0 && buyPrice < bestAsk) {
       const size = Math.min(MAX_SIZE, balance / buyPrice);
       if (size >= 1) {
-        // TODO: replace slot.asset with slot.upTokenId once engine populates it
-        postOrders([
-          {
-            tokenId: slot.upTokenId ?? slot.asset,
+        const tokenId = resolveBinaryTokenId(slot, "UP");
+        if (tokenId) {
+          postOrders([{
+            tokenId,
             price: Number(buyPrice.toFixed(4)),
             size,
             side: "BUY",
             orderType: "GTC",
-          },
-        ]);
+          }]);
+        }
       }
     }
 
     if (sellPrice < 1 && sellPrice > bestBid) {
       const size = Math.min(MAX_SIZE, balance / (1 - sellPrice));
       if (size >= 1) {
-        // BUGFIX: original used `slot.asset + "-DOWN"` (invalid Polymarket tokenId).
-        // TODO: replace with slot.downTokenId once engine populates it
-        postOrders([
-          {
-            tokenId: slot.downTokenId ?? `${slot.asset}-DOWN`,
+        const tokenId = resolveBinaryTokenId(slot, "DOWN");
+        if (tokenId) {
+          postOrders([{
+            tokenId,
             price: Number((1 - sellPrice).toFixed(4)),
             size,
             side: "BUY",
             orderType: "GTC",
-          },
-        ]);
+          }]);
+        }
       }
     }
   }, 2000);

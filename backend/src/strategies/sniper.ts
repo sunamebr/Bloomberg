@@ -1,4 +1,5 @@
 import type { Strategy, StrategyContext } from "./types";
+import { resolveBinaryTokenId } from "./token-resolver";
 
 const MAX_SIZE = 25;
 const MIN_SAMPLES = 10;
@@ -92,13 +93,14 @@ export const sniper: Strategy = async (ctx: StrategyContext) => {
     if (momentum === "up") {
       const size = Math.min(MAX_SIZE, balance / bestAsk);
       if (size < 1) return;
+      const tokenId = resolveBinaryTokenId(slot, "UP");
+      if (!tokenId) return;
       lastTrade = now;
       awaitingResult = true;
       pendingEntry = { price: bestAsk, side: "UP", pattern };
-      // TODO: replace slot.asset with slot.upTokenId once engine populates it
       postOrders([
         {
-          tokenId: slot.upTokenId ?? slot.asset,
+          tokenId,
           price: bestAsk,
           size,
           side: "BUY",
@@ -108,14 +110,14 @@ export const sniper: Strategy = async (ctx: StrategyContext) => {
     } else if (momentum === "down") {
       const size = Math.min(MAX_SIZE, balance / (1 - bestBid));
       if (size < 1) return;
+      const tokenId = resolveBinaryTokenId(slot, "DOWN");
+      if (!tokenId) return;
       lastTrade = now;
       awaitingResult = true;
       pendingEntry = { price: 1 - bestBid, side: "DOWN", pattern };
-      // BUGFIX: original used `slot.asset + "-DOWN"` (invalid Polymarket tokenId).
-      // TODO: replace with slot.downTokenId once engine populates it
       postOrders([
         {
-          tokenId: slot.downTokenId ?? `${slot.asset}-DOWN`,
+          tokenId,
           price: 1 - bestBid,
           size,
           side: "BUY",

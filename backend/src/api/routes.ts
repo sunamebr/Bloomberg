@@ -1,10 +1,12 @@
-import { Router, type Request, type Response } from "express";
+﻿import { Router, type Request, type Response } from "express";
 import { config } from "../config";
 import { registry } from "../strategies";
 import { authenticateToken } from "../auth";
-import { getOpenPositions, getRecentSignals, getLedger } from "../db";
+import { getOpenPositions, getRecentSignals, getLedger, getOperationHistory } from "../db";
 import { pingDb } from "../db/pool";
 import { readTailJsonl } from "../lib/jsonl-log.mjs";
+import { getWalletSnapshot } from "../services/wallet";
+import { getConnectionReport } from "../services/connections";
 
 export const apiRouter = Router();
 
@@ -28,6 +30,24 @@ apiRouter.get("/status", (_req: Request, res: Response) => {
     capital: { maxCapUsd: config.maxCapUsd, asset: config.marketAsset, window: config.marketWindow },
     strategies: registry.status(),
   });
+});
+
+apiRouter.get("/wallet", async (req: Request, res: Response) => {
+  try {
+    const wallet = await getWalletSnapshot(typeof req.query.address === "string" ? req.query.address : undefined);
+    res.json({ wallet });
+  } catch (err) {
+    res.status(502).json({ error: "wallet_unavailable", detail: String(err) });
+  }
+});
+
+apiRouter.get("/connections", async (req: Request, res: Response) => {
+  try {
+    const report = await getConnectionReport(wsStatus, typeof req.query.address === "string" ? req.query.address : undefined);
+    res.json(report);
+  } catch (err) {
+    res.status(502).json({ error: "connections_unavailable", detail: String(err) });
+  }
 });
 
 apiRouter.get("/positions", async (req: Request, res: Response) => {
@@ -62,6 +82,17 @@ apiRouter.get("/ledger", async (req: Request, res: Response) => {
   }
 });
 
+apiRouter.get("/operations", async (req: Request, res: Response) => {
+  const limit = clampLimit(req.query.limit, 100, 500);
+  try {
+    const operations = await getOperationHistory(limit);
+    res.json({ operations });
+  } catch {
+    const fallback = readTailJsonl("ledger.jsonl", limit);
+    res.json({ operations: fallback, source: "jsonl_fallback" });
+  }
+});
+
 apiRouter.post("/strategy/:id/toggle", authenticateToken, (req: Request, res: Response) => {
   const id = String(req.params.id);
   const enable = req.body?.enable ?? !registry.isEnabled(id);
@@ -87,8 +118,54 @@ apiRouter.post("/mode/toggle", authenticateToken, (req: Request, res: Response) 
   res.json({ paperMode: nextMode, warning: nextMode ? "switched_to_paper" : "switched_to_live_real_funds_at_risk" });
 });
 
+apiRouter.get("/scanner", (_req: Request, res: Response) => {
+  const { scanner } = require("../scanner");
+  res.json(scanner.getState());
+});
+
+apiRouter.get("/scanner/watchlist", (_req: Request, res: Response) => {
+  const { watchlist } = require("../scanner/watchlist");
+  res.json({ persistent: watchlist.getPersistent(), all: watchlist.getAll() });
+});
+
+apiRouter.get("/production/state", (_req: Request, res: Response) => {
+  const { productionState } = require("../production/state");
+  res.json({ today: productionState.getTodayStats(), equity: productionState.getEquity(), drawdown: productionState.getDrawdown() });
+});
+
+apiRouter.get("/production/failures", (_req: Request, res: Response) => {
+  const { failureAnalysis } = require("../production/failure-analysis");
+  res.json({ stats: failureAnalysis.getStats(), recent: failureAnalysis.getRecentEvents() });
+});
+
+apiRouter.get("/alpha/metrics", (_req: Request, res: Response) => {
+  const { alphaLab } = require("../alpha/lab");
+  res.json({ metrics: alphaLab.getMetrics(), top: alphaLab.getTopStrategies() });
+});
+
+apiRouter.get("/arena/ranking", (_req: Request, res: Response) => {
+  const { botScorer } = require("../arena/scoring");
+  res.json({ ranking: botScorer.getRanking(), top: botScorer.getTopBots() });
+});
+
+apiRouter.get("/arena/evolution", (_req: Request, res: Response) => {
+  const { evolution } = require("../arena/evolution");
+  res.json({ generation: evolution.getGeneration(), population: evolution.getPopulation(), top: evolution.getTopIndividuals() });
+});
+
+apiRouter.get("/learning/features", (_req: Request, res: Response) => {
+  const { featureExtractor } = require("../learning/features");
+  res.json({ fields: featureExtractor.getFeatureFields() });
+});
+
+apiRouter.get("/assistant/alerts", (_req: Request, res: Response) => {
+  const { tradeAssistant } = require("../assistant");
+  res.json(tradeAssistant.getState());
+});
+
 function clampLimit(raw: unknown, def: number, max: number): number {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return def;
   return Math.min(Math.floor(n), max);
 }
+
