@@ -1,0 +1,19 @@
+﻿{
+  "name": "mestrados-trades",
+  "version": "1.0.0",
+  "description": "MestraDosTrades - Trading system for Polymarket",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "install:frontend": "cd frontend && npm install",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run install:frontend && npm run build:frontend",
+    "start": "node server.js",
+    "dev": "cd frontend && npm run dev"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
