@@ -1,9 +1,15 @@
-# Backend placeholder — substituído em T2/T3
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# T2: copiar package.json, instalar deps, copiar src
-# Por ora só mantém o container vivo para dev
+COPY package*.json ./
+RUN npm install --omit=optional
 
-CMD ["tail", "-f", "/dev/null"]
+COPY . .
+
+ENV NODE_ENV=production
+ENV PORT=3001
+
+EXPOSE 3001
+
+CMD ["npm", "run", "dev"]
